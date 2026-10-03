@@ -1,0 +1,53 @@
+{
+  "manifest_version": 3,
+  "name": "UI Commenter",
+  "version": "1.0.0",
+  "description": "Figma-style collaborative commenting and inspection overlay for live web pages and staging prototypes.",
+  "permissions": [
+    "identity",
+    "storage",
+    "activeTab",
+    "sidePanel",
+    "tabs",
+    "scripting"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "dist/background.bundle.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "UI Commenter",
+    "default_icon": {
+      "16": "assets/icon-16.png",
+      "48": "assets/icon-48.png",
+      "128": "assets/icon-128.png"
+    }
+  },
+  "side_panel": {
+    "default_path": "dist/sidepanel/index.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["dist/content.bundle.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "assets/*",
+        "dist/*"
+      ],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "icons": {
+    "16": "assets/icon-16.png",
+    "48": "assets/icon-48.png",
+    "128": "assets/icon-128.png"
+  }
+}

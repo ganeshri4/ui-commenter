@@ -1,0 +1,17 @@
+{
+  "name": "ui-commenter",
+  "version": "1.0.0",
+  "description": "Figma-style collaborative commenting and inspection overlay for live web pages (Chrome MV3)",
+  "main": "dist/background.bundle.js",
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "watch": "node build.mjs --watch"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.1"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0"
+  }
+}
