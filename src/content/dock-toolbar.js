@@ -18,12 +18,21 @@ export class DockToolbar {
     this.onSignIn = options.onSignIn;
     this.onSignOut = options.onSignOut;
     this.onCloseOverlay = options.onCloseOverlay;
+    this.isPanelOpen = false;
 
     this.dock = document.createElement("div");
     this.dock.className = "uc-dock";
     this.shadowRoot.appendChild(this.dock);
 
     this.render();
+  }
+
+  setPanelOpen(isOpen) {
+    this.isPanelOpen = !!isOpen;
+    const panelBtn = this.dock.querySelector(".uc-dock-panel-btn");
+    if (panelBtn) {
+      panelBtn.classList.toggle("active", this.isPanelOpen);
+    }
   }
 
   setMode(mode) {
@@ -56,7 +65,7 @@ export class DockToolbar {
         <path d="M0 9.5C0 14.7467 4.25329 19 9.5 19H19V0H9.5C4.25329 0 0 4.25329 0 9.5Z" fill="#F24E1E"/>
         <path d="M0 28.5C0 33.7467 4.25329 38 9.5 38H19V19H9.5C4.25329 19 0 23.2533 0 28.5Z" fill="#A259FF"/>
       </svg>
-      <span>Comments</span>
+      <span>Comments Everywhere</span>
     `;
     this.dock.appendChild(brand);
 
@@ -118,8 +127,8 @@ export class DockToolbar {
 
     // 4. Side Panel Toggle Button
     const panelBtn = document.createElement("button");
-    panelBtn.className = "uc-dock-btn";
-    panelBtn.setAttribute("data-tooltip", "Open Comments Panel");
+    panelBtn.className = `uc-dock-btn uc-dock-panel-btn ${this.isPanelOpen ? "active" : ""}`;
+    panelBtn.setAttribute("data-tooltip", "Comments Panel (All Threads)");
     panelBtn.innerHTML = renderIcon("sidebarSimple", 16);
     panelBtn.addEventListener("click", () => {
       if (this.onToggleSidePanel) this.onToggleSidePanel();
@@ -181,7 +190,7 @@ export class DockToolbar {
 
     const closeBtn = document.createElement("button");
     closeBtn.className = "uc-dock-btn";
-    closeBtn.setAttribute("data-tooltip", "Turn off comments");
+    closeBtn.setAttribute("data-tooltip", "Turn off Comments Everywhere");
     closeBtn.innerHTML = renderIcon("x", 14);
     closeBtn.addEventListener("click", () => {
       if (this.onCloseOverlay) this.onCloseOverlay();

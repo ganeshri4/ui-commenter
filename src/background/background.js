@@ -311,8 +311,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.type === "OPEN_SIDE_PANEL") {
-    if (sender.tab?.windowId) {
-      chrome.sidePanel.open({ windowId: sender.tab.windowId }).catch(console.error);
+    const tabId = sender.tab?.id;
+    const windowId = sender.tab?.windowId;
+    if (tabId) {
+      chrome.sidePanel.open({ tabId }).catch((err) => {
+        console.warn("[Comments Everywhere] Failed to open side panel by tabId:", err.message);
+        if (windowId) {
+          chrome.sidePanel.open({ windowId }).catch((wErr) => {
+            console.warn("[Comments Everywhere] Failed to open side panel by windowId:", wErr.message);
+          });
+        }
+      });
+    } else if (windowId) {
+      chrome.sidePanel.open({ windowId }).catch(console.warn);
     }
     sendResponse({ success: true });
   }

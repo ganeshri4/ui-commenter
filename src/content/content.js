@@ -10,9 +10,11 @@ import { CanvasOverlay } from "./canvas-overlay.js";
 import { PinManager } from "./pin-manager.js";
 import { ThreadPopover } from "./thread-popover.js";
 import { DockToolbar } from "./dock-toolbar.js";
+import { CommentsDrawer } from "./comments-drawer.js";
 import {
   normalizeUrlPath,
   fetchActiveComments,
+  fetchAllComments,
   insertComment,
   insertReply,
   setCommentResolved,
@@ -79,6 +81,10 @@ class UICommenterOverlay {
 
     if (this.pinManager) {
       this.pinManager.clearActivePin();
+    }
+
+    if (this.commentsDrawer) {
+      this.commentsDrawer.close();
     }
 
     if (this.realtimeChannel) {
@@ -156,6 +162,19 @@ class UICommenterOverlay {
       this.promptDraft(payload);
     });
 
+    // In-Page Comments Side Drawer (Figma-style sidebar)
+    this.commentsDrawer = new CommentsDrawer(this.shadowRoot, {
+      currentUrlPath: this.currentUrlPath,
+      currentUser: this.currentUser,
+      onLocate: (commentId) => this.scrollToCommentPin(commentId),
+      onResolve: (commentId, isResolved) => this.handleResolveComment(commentId, isResolved),
+      onDelete: (commentId) => this.handleDeleteComment(commentId),
+      onAddReply: (commentId, content) => this.handleAddReply(commentId, content),
+      onOpenStateChange: (isOpen) => {
+        if (this.dockToolbar) this.dockToolbar.setPanelOpen(isOpen);
+      }
+    });
+
     // Figma Floating Dock
     this.dockToolbar = new DockToolbar(this.shadowRoot, {
       initialMode: this.currentMode,
@@ -222,6 +241,7 @@ class UICommenterOverlay {
       const saved = await insertComment(commentRecord);
       // Immediately add locally if realtime takes a moment
       this.upsertCommentLocally(saved);
+      if (this.commentsDrawer?.isOpen) this.syncDrawerComments();
     } catch (err) {
       console.error("[Comments Everywhere] Failed to insert comment:", err);
       // Local fallback for offline/preview
@@ -231,6 +251,7 @@ class UICommenterOverlay {
         avatar_url: this.currentUser?.user_metadata?.avatar_url || null
       };
       this.upsertCommentLocally(commentRecord);
+      if (this.commentsDrawer?.isOpen) this.syncDrawerComments();
     }
   }
 
@@ -251,6 +272,7 @@ class UICommenterOverlay {
         const activePin = this.shadowRoot.querySelector(`.uc-pin[data-comment-id="${commentId}"]`);
         if (activePin) this.threadPopover.openThread(target, activePin);
       }
+      if (this.commentsDrawer?.isOpen) this.syncDrawerComments();
     } catch (err) {
       console.error("[Comments Everywhere] Failed to add reply:", err);
     }
@@ -262,10 +284,12 @@ class UICommenterOverlay {
       // Remove from canvas pins locally
       this.comments = this.comments.filter(c => c.id !== commentId);
       this.pinManager.setComments(this.comments);
+      if (this.commentsDrawer?.isOpen) this.syncDrawerComments();
     } catch (err) {
       console.error("[Comments Everywhere] Failed to resolve comment:", err);
       this.comments = this.comments.filter(c => c.id !== commentId);
       this.pinManager.setComments(this.comments);
+      if (this.commentsDrawer?.isOpen) this.syncDrawerComments();
     }
   }
 
@@ -274,6 +298,7 @@ class UICommenterOverlay {
       await deleteComment(commentId);
       this.comments = this.comments.filter(c => c.id !== commentId);
       this.pinManager.setComments(this.comments);
+      if (this.commentsDrawer?.isOpen) this.syncDrawerComments();
     } catch (err) {
       console.error("[Comments Everywhere] Failed to delete comment:", err);
     }
@@ -293,6 +318,13 @@ class UICommenterOverlay {
     this.currentUrlPath = urlPath;
     this.comments = await fetchActiveComments(urlPath);
     this.pinManager.setComments(this.comments);
+
+    if (this.commentsDrawer) {
+      this.commentsDrawer.setRoute(urlPath);
+      if (this.commentsDrawer.isOpen) {
+        this.syncDrawerComments();
+      }
+    }
 
     // Subscribe to Realtime & Presence
     if (this.realtimeChannel) {
@@ -314,9 +346,15 @@ class UICommenterOverlay {
           this.comments = this.comments.filter(c => c.id !== payload.old.id);
           this.pinManager.setComments(this.comments);
         }
+        if (this.commentsDrawer?.isOpen) {
+          this.syncDrawerComments();
+        }
       },
       onReplyChange: () => {
         this.loadRouteComments(this.currentUrlPath);
+        if (this.commentsDrawer?.isOpen) {
+          this.syncDrawerComments();
+        }
       },
       onPresenceSync: (collaborators) => {
         this.dockToolbar.setCollaborators(collaborators);
@@ -392,6 +430,7 @@ class UICommenterOverlay {
         this.currentUser = message.user;
         if (this.dockToolbar) this.dockToolbar.setCurrentUser(this.currentUser);
         if (this.threadPopover) this.threadPopover.setCurrentUser(this.currentUser);
+        if (this.commentsDrawer) this.commentsDrawer.setCurrentUser(this.currentUser);
         if (this.isEnabled) this.loadRouteComments(this.currentUrlPath);
         sendResponse({ success: true });
         return;
@@ -428,11 +467,36 @@ class UICommenterOverlay {
         this.pinManager.setActivePin(commentId);
         this.threadPopover.openThread(comment, pinEl);
       }
+    } else {
+      // It might be a resolved comment
+      const drawerComment = this.commentsDrawer?.comments.find(c => c.id === commentId);
+      if (drawerComment) {
+        const scrollY = (drawerComment.y_percent / 100) * document.documentElement.scrollHeight;
+        window.scrollTo({ top: Math.max(0, scrollY - 200), behavior: "smooth" });
+      }
     }
   }
 
-  toggleSidePanel() {
+  async toggleSidePanel() {
+    if (this.commentsDrawer) {
+      this.commentsDrawer.toggle();
+      if (this.commentsDrawer.isOpen) {
+        await this.syncDrawerComments();
+      }
+    }
+    // Also dispatch message to background to attempt browser sidePanel.open
     chrome.runtime.sendMessage({ type: "OPEN_SIDE_PANEL" });
+  }
+
+  async syncDrawerComments() {
+    if (!this.commentsDrawer) return;
+    try {
+      const allComments = await fetchAllComments(this.currentUrlPath);
+      this.commentsDrawer.setComments(allComments);
+    } catch (err) {
+      console.warn("[Comments Everywhere] Failed to sync drawer comments:", err);
+      this.commentsDrawer.setComments(this.comments);
+    }
   }
 
   triggerSignIn() {
