@@ -18,21 +18,12 @@ export class DockToolbar {
     this.onSignIn = options.onSignIn;
     this.onSignOut = options.onSignOut;
     this.onCloseOverlay = options.onCloseOverlay;
-    this.isPanelOpen = false;
 
     this.dock = document.createElement("div");
     this.dock.className = "uc-dock";
     this.shadowRoot.appendChild(this.dock);
 
     this.render();
-  }
-
-  setPanelOpen(isOpen) {
-    this.isPanelOpen = !!isOpen;
-    const panelBtn = this.dock.querySelector(".uc-dock-panel-btn");
-    if (panelBtn) {
-      panelBtn.classList.toggle("active", this.isPanelOpen);
-    }
   }
 
   setMode(mode) {
@@ -127,7 +118,7 @@ export class DockToolbar {
 
     // 4. Side Panel Toggle Button
     const panelBtn = document.createElement("button");
-    panelBtn.className = `uc-dock-btn uc-dock-panel-btn ${this.isPanelOpen ? "active" : ""}`;
+    panelBtn.className = "uc-dock-btn";
     panelBtn.setAttribute("data-tooltip", "Comments Panel (All Threads)");
     panelBtn.innerHTML = renderIcon("sidebarSimple", 16);
     panelBtn.addEventListener("click", () => {
