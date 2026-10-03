@@ -56,7 +56,7 @@ export class DockToolbar {
         <path d="M0 9.5C0 14.7467 4.25329 19 9.5 19H19V0H9.5C4.25329 0 0 4.25329 0 9.5Z" fill="#F24E1E"/>
         <path d="M0 28.5C0 33.7467 4.25329 38 9.5 38H19V19H9.5C4.25329 19 0 23.2533 0 28.5Z" fill="#A259FF"/>
       </svg>
-      <span>Comments Everywhere</span>
+      <span>Comments</span>
     `;
     this.dock.appendChild(brand);
 
@@ -68,8 +68,8 @@ export class DockToolbar {
     const browseBtn = this.createModeButton("browse", "cursor", "Browse", "Browse without commenting");
     // Mode A: DOM Inspector
     const domBtn = this.createModeButton("dom", "frameCorners", "Inspect DOM", "Mode A: Lock element & comment");
-    // Mode B: Canvas Click
-    const canvasBtn = this.createModeButton("canvas", "mapPin", "Canvas Pin", "Mode B: Drop coordinate pin");
+    // Mode B: Canvas Click (Phosphor Crosshair)
+    const canvasBtn = this.createModeButton("canvas", "crosshair", "Canvas Pin", "Mode B: Drop coordinate pin");
 
     modesContainer.appendChild(browseBtn);
     modesContainer.appendChild(domBtn);
@@ -117,11 +117,11 @@ export class DockToolbar {
       this.dock.appendChild(div2);
     }
 
-    // 4. Side Panel Toggle Button
+    // 4. Side Panel Toggle Button (Phosphor SidebarSimple)
     const panelBtn = document.createElement("button");
     panelBtn.className = "uc-dock-btn";
     panelBtn.setAttribute("data-tooltip", "Comments Panel (All Threads)");
-    panelBtn.innerHTML = renderIcon("chatTeardropDots", 16);
+    panelBtn.innerHTML = renderIcon("sidebarSimple", 16);
     panelBtn.addEventListener("click", () => {
       if (this.onToggleSidePanel) this.onToggleSidePanel();
     });
@@ -182,7 +182,7 @@ export class DockToolbar {
 
     const closeBtn = document.createElement("button");
     closeBtn.className = "uc-dock-btn";
-    closeBtn.setAttribute("data-tooltip", "Turn off Comments Everywhere");
+    closeBtn.setAttribute("data-tooltip", "Turn off Comments");
     closeBtn.innerHTML = renderIcon("x", 14);
     closeBtn.addEventListener("click", () => {
       if (this.onCloseOverlay) this.onCloseOverlay();

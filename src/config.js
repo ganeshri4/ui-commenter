@@ -30,7 +30,7 @@ export const CONFIG = {
   },
 
   // Extension metadata
-  APP_NAME: "Comments Everywhere",
+  APP_NAME: "Comments",
   STORAGE_KEYS: {
     AUTH_SESSION: "ui_commenter_auth_session",
     USER_PROFILE: "ui_commenter_user_profile",
