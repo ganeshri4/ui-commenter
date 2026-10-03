@@ -1,4 +1,4 @@
-# UI Commenter 🎨💬
+# Comments Everywhere 🎨💬
 
 > Production-ready Google Chrome Extension (Manifest V3) acting as a Figma-style collaborative commenting and inspection overlay for live web pages, staging prototypes, and SPAs.
 
@@ -65,7 +65,7 @@ comments/
    - Click **Load unpacked** in the top-left.
    - Select the project root folder: `/Users/ganesh/Desktop/comments`.
 3. **Pin the Extension**:
-   - Click the Extensions puzzle icon in Chrome's toolbar and pin **UI Commenter**.
+   - Click the Extensions puzzle icon in Chrome's toolbar and pin **Comments Everywhere**.
    - Note down the **Extension ID** displayed on the extension card (e.g. `abcdefghijklmnop...`).
 4. **FireShot-Style Toolbar Toggle (ON / OFF)**:
    - **Click 1 on Toolbar Icon**: Turns the extension **ON** for the active tab (badge shows `ON` in Figma Blue), mounts the overlay, loads comments, and displays the Figma dock.
@@ -75,7 +75,7 @@ comments/
 
 ## 🔐 Google OAuth & Supabase Configuration
 
-UI Commenter uses `chrome.identity.launchWebAuthFlow` to authenticate with Google through Supabase Auth. Follow these exact configuration steps:
+Comments Everywhere uses `chrome.identity.launchWebAuthFlow` to authenticate with Google through Supabase Auth. Follow these exact configuration steps:
 
 ### Step 1: Obtain your Chrome Extension Redirect URI
 Your extension redirect URI follows this exact format:

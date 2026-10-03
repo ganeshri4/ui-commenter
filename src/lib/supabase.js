@@ -130,7 +130,7 @@ export async function fetchActiveComments(urlPath) {
     try {
       return await sendBackgroundApi("API_FETCH_ACTIVE_COMMENTS", { urlPath });
     } catch (err) {
-      console.warn("[UI Commenter] Error fetching comments via background:", err.message);
+      console.warn("[Comments Everywhere] Error fetching comments via background:", err.message);
       return [];
     }
   }
@@ -158,7 +158,7 @@ export async function fetchActiveComments(urlPath) {
     .order("created_at", { ascending: true });
 
   if (error) {
-    console.warn("[UI Commenter] Supabase fetch error:", error.message);
+    console.warn("[Comments Everywhere] Supabase fetch error:", error.message);
     throw error;
   }
 
@@ -173,7 +173,7 @@ export async function fetchAllComments(urlPath) {
     try {
       return await sendBackgroundApi("API_FETCH_ALL_COMMENTS", { urlPath });
     } catch (err) {
-      console.warn("[UI Commenter] Error fetching all comments via background:", err.message);
+      console.warn("[Comments Everywhere] Error fetching all comments via background:", err.message);
       return [];
     }
   }
@@ -200,7 +200,7 @@ export async function fetchAllComments(urlPath) {
     .order("created_at", { ascending: false });
 
   if (error) {
-    console.warn("[UI Commenter] Supabase fetchAll error:", error.message);
+    console.warn("[Comments Everywhere] Supabase fetchAll error:", error.message);
     throw error;
   }
 

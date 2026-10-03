@@ -1,5 +1,5 @@
 /**
- * Service Worker for UI Commenter (Chrome Extension MV3)
+ * Service Worker for Comments Everywhere (Chrome Extension MV3)
  * Handles Google OAuth via chrome.identity.launchWebAuthFlow,
  * Supabase Background Proxy Bridge (completely immune to host page CSP/CORS),
  * side panel controls, token storage, and cross-tab broadcasts.
@@ -41,7 +41,7 @@ function setupRealtimeChannel(urlPath, currentUser) {
     }
   }).then((channel) => {
     activeRealtimeChannels.set(urlPath, { channel, refCount: 1 });
-  }).catch((err) => console.warn("[UI Commenter] Realtime subscribe error:", err));
+  }).catch((err) => console.warn("[Comments Everywhere] Realtime subscribe error:", err));
 }
 
 function teardownRealtimeChannel(urlPath) {
@@ -88,7 +88,7 @@ chrome.action.onClicked.addListener(async (tab) => {
           chrome.tabs.sendMessage(tab.id, { type: "TOGGLE_OVERLAY", enabled: true }).catch(() => {});
         }, 150);
       } catch (injectErr) {
-        console.warn("[UI Commenter] Script injection error:", injectErr);
+        console.warn("[Comments Everywhere] Script injection error:", injectErr);
       }
     }
   } else {
@@ -107,7 +107,7 @@ async function handleGoogleOAuth() {
   const config = await getEffectiveConfig();
   const redirectUri = chrome.identity.getRedirectURL();
 
-  console.log("[UI Commenter] Launching Google OAuth with redirectUri:", redirectUri);
+  console.log("[Comments Everywhere] Launching Google OAuth with redirectUri:", redirectUri);
 
   // Supabase Google Auth URL
   const authUrl = `${config.SUPABASE_URL}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(redirectUri)}`;
@@ -120,7 +120,7 @@ async function handleGoogleOAuth() {
       },
       async (redirectUrl) => {
         if (chrome.runtime.lastError) {
-          console.error("[UI Commenter] Auth error:", chrome.runtime.lastError.message);
+          console.error("[Comments Everywhere] Auth error:", chrome.runtime.lastError.message);
           return reject(new Error(chrome.runtime.lastError.message));
         }
 
@@ -189,7 +189,7 @@ async function handleGoogleOAuth() {
               })
             });
           } catch (syncErr) {
-            console.warn("[UI Commenter] Profile sync notice:", syncErr);
+            console.warn("[Comments Everywhere] Profile sync notice:", syncErr);
           }
 
           // Broadcast state to all tabs
@@ -201,7 +201,7 @@ async function handleGoogleOAuth() {
 
           resolve({ session, user });
         } catch (err) {
-          console.error("[UI Commenter] Token parse error:", err);
+          console.error("[Comments Everywhere] Token parse error:", err);
           reject(err);
         }
       }

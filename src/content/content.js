@@ -1,5 +1,5 @@
 /**
- * Main Content Script for UI Commenter (Chrome Extension MV3)
+ * Main Content Script for Comments Everywhere (Chrome Extension MV3)
  * Mounts Isolated Shadow DOM, manages overlay pointer physics,
  * watches SPA route mutations, handles Mode A/B commenting, and syncs via Supabase.
  */
@@ -223,7 +223,7 @@ class UICommenterOverlay {
       // Immediately add locally if realtime takes a moment
       this.upsertCommentLocally(saved);
     } catch (err) {
-      console.error("[UI Commenter] Failed to insert comment:", err);
+      console.error("[Comments Everywhere] Failed to insert comment:", err);
       // Local fallback for offline/preview
       commentRecord.id = "local-" + Date.now();
       commentRecord.profiles = {
@@ -252,7 +252,7 @@ class UICommenterOverlay {
         if (activePin) this.threadPopover.openThread(target, activePin);
       }
     } catch (err) {
-      console.error("[UI Commenter] Failed to add reply:", err);
+      console.error("[Comments Everywhere] Failed to add reply:", err);
     }
   }
 
@@ -263,7 +263,7 @@ class UICommenterOverlay {
       this.comments = this.comments.filter(c => c.id !== commentId);
       this.pinManager.setComments(this.comments);
     } catch (err) {
-      console.error("[UI Commenter] Failed to resolve comment:", err);
+      console.error("[Comments Everywhere] Failed to resolve comment:", err);
       this.comments = this.comments.filter(c => c.id !== commentId);
       this.pinManager.setComments(this.comments);
     }
@@ -275,7 +275,7 @@ class UICommenterOverlay {
       this.comments = this.comments.filter(c => c.id !== commentId);
       this.pinManager.setComments(this.comments);
     } catch (err) {
-      console.error("[UI Commenter] Failed to delete comment:", err);
+      console.error("[Comments Everywhere] Failed to delete comment:", err);
     }
   }
 
@@ -338,7 +338,7 @@ class UICommenterOverlay {
         lastUrl = currUrl;
         const normalized = normalizeUrlPath(currUrl);
         if (normalized !== this.currentUrlPath) {
-          console.log("[UI Commenter] SPA Route change detected:", normalized);
+          console.log("[Comments Everywhere] SPA Route change detected:", normalized);
           this.threadPopover?.closePopover();
           this.threadPopover?.closeDraft();
           this.loadRouteComments(normalized);

@@ -1,5 +1,5 @@
 /**
- * Production Build Script for UI Commenter (Chrome Extension MV3)
+ * Production Build Script for Comments Everywhere (Chrome Extension MV3)
  * Bundles ES modules and third-party dependencies using esbuild.
  */
 
@@ -10,7 +10,7 @@ import * as path from "path";
 const isWatch = process.argv.includes("--watch");
 
 async function build() {
-  console.log("⚡ [UI Commenter] Starting extension build...");
+  console.log("⚡ [Comments Everywhere] Starting extension build...");
 
   // Ensure output directories exist
   fs.mkdirSync("dist/sidepanel", { recursive: true });
@@ -79,7 +79,7 @@ async function build() {
       esbuild.build(backgroundConfig),
       esbuild.build(sidepanelConfig)
     ]);
-    console.log("✅ [UI Commenter] Build completed successfully into dist/");
+    console.log("✅ [Comments Everywhere] Build completed successfully into dist/");
   }
 }
 
