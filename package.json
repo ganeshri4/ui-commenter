@@ -9,6 +9,7 @@
     "watch": "node build.mjs --watch"
   },
   "dependencies": {
+    "@phosphor-icons/core": "^2.1.1",
     "@supabase/supabase-js": "^2.49.1"
   },
   "devDependencies": {

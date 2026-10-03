@@ -67,9 +67,9 @@ export class DockToolbar {
     // Mode: Browse
     const browseBtn = this.createModeButton("browse", "cursor", "Browse", "Browse without commenting");
     // Mode A: DOM Inspector
-    const domBtn = this.createModeButton("dom", "inspector", "Inspect DOM", "Mode A: Lock element & comment");
+    const domBtn = this.createModeButton("dom", "frameCorners", "Inspect DOM", "Mode A: Lock element & comment");
     // Mode B: Canvas Click
-    const canvasBtn = this.createModeButton("canvas", "crosshair", "Canvas Pin", "Mode B: Drop coordinate pin");
+    const canvasBtn = this.createModeButton("canvas", "mapPin", "Canvas Pin", "Mode B: Drop coordinate pin");
 
     modesContainer.appendChild(browseBtn);
     modesContainer.appendChild(domBtn);
@@ -98,6 +98,7 @@ export class DockToolbar {
         } else {
           pAvatar.textContent = (name[0] || "U").toUpperCase();
         }
+
         presenceGroup.appendChild(pAvatar);
       });
 
@@ -120,7 +121,7 @@ export class DockToolbar {
     const panelBtn = document.createElement("button");
     panelBtn.className = "uc-dock-btn";
     panelBtn.setAttribute("data-tooltip", "Comments Panel (All Threads)");
-    panelBtn.innerHTML = renderIcon("sidebarSimple", 16);
+    panelBtn.innerHTML = renderIcon("chatTeardropDots", 16);
     panelBtn.addEventListener("click", () => {
       if (this.onToggleSidePanel) this.onToggleSidePanel();
     });
