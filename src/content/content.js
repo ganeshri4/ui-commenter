@@ -125,8 +125,17 @@ class UICommenterOverlay {
 
   async loadAuthState() {
     return new Promise((resolve) => {
-      chrome.storage.local.get([CONFIG.STORAGE_KEYS.AUTH_SESSION, CONFIG.STORAGE_KEYS.USER_PROFILE], (result) => {
-        this.currentUser = result[CONFIG.STORAGE_KEYS.USER_PROFILE] || null;
+      // Request validated session from background service worker
+      chrome.runtime.sendMessage({ type: "GET_SESSION" }, (res) => {
+        if (chrome.runtime.lastError) {
+          // Background not ready — fall back to local storage
+          chrome.storage.local.get([CONFIG.STORAGE_KEYS.USER_PROFILE], (result) => {
+            this.currentUser = result[CONFIG.STORAGE_KEYS.USER_PROFILE] || null;
+            resolve(this.currentUser);
+          });
+          return;
+        }
+        this.currentUser = (res && res.user) || null;
         resolve(this.currentUser);
       });
     });
@@ -438,7 +447,15 @@ class UICommenterOverlay {
   }
 
   triggerSignIn() {
-    chrome.runtime.sendMessage({ type: "TRIGGER_GOOGLE_AUTH" });
+    // The background will broadcast AUTH_STATE_CHANGED on success,
+    // which is caught by the message listener below and updates dockToolbar.
+    chrome.runtime.sendMessage({ type: "TRIGGER_GOOGLE_AUTH" }, (res) => {
+      if (chrome.runtime.lastError) return;
+      if (res && !res.success) {
+        console.warn("[Comments] Sign-in failed:", res.error);
+      }
+      // On success AUTH_STATE_CHANGED broadcast handles dock re-render
+    });
   }
 
   triggerSignOut() {

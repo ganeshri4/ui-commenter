@@ -58,6 +58,37 @@ function teardownRealtimeChannel(urlPath) {
 }
 
 /**
+ * Restore saved session on service worker startup / wake-up.
+ * Broadcasts AUTH_STATE_CHANGED to all open tabs so the dock and sidepanel
+ * show the correct user without forcing a sign-in after every extension reload.
+ */
+async function restoreSessionIfAvailable() {
+  return new Promise((resolve) => {
+    chrome.storage.local.get([CONFIG.STORAGE_KEYS.AUTH_SESSION, CONFIG.STORAGE_KEYS.USER_PROFILE], (result) => {
+      const session = result[CONFIG.STORAGE_KEYS.AUTH_SESSION] || null;
+      const user = result[CONFIG.STORAGE_KEYS.USER_PROFILE] || null;
+      if (session && user) {
+        // Check if token is still valid (expires_at in epoch seconds)
+        const nowSec = Math.floor(Date.now() / 1000);
+        if (session.expires_at && session.expires_at < nowSec) {
+          // Session expired — clear it
+          chrome.storage.local.remove([CONFIG.STORAGE_KEYS.AUTH_SESSION, CONFIG.STORAGE_KEYS.USER_PROFILE]);
+          broadcastMessage({ type: "AUTH_STATE_CHANGED", user: null, session: null });
+        } else {
+          // Valid session — restore
+          broadcastMessage({ type: "AUTH_STATE_CHANGED", user, session });
+        }
+      }
+      resolve();
+    });
+  });
+}
+
+// Restore session when service worker wakes up
+chrome.runtime.onInstalled.addListener(() => restoreSessionIfAvailable());
+chrome.runtime.onStartup.addListener(() => restoreSessionIfAvailable());
+
+/**
  * Toolbar Action Click: Toggles UI Commenter ON / OFF for active tab (FireShot style)
  */
 chrome.action.onClicked.addListener(async (tab) => {
@@ -74,6 +105,25 @@ chrome.action.onClicked.addListener(async (tab) => {
     // Turn ON: Set badge and enable overlay
     await chrome.action.setBadgeText({ tabId: tab.id, text: "ON" });
     await chrome.action.setBadgeBackgroundColor({ tabId: tab.id, color: "#18A0FB" });
+
+    // Fetch saved session and send it to this tab after overlay activates
+    chrome.storage.local.get([CONFIG.STORAGE_KEYS.AUTH_SESSION, CONFIG.STORAGE_KEYS.USER_PROFILE], (result) => {
+      const savedUser = result[CONFIG.STORAGE_KEYS.USER_PROFILE] || null;
+      const savedSession = result[CONFIG.STORAGE_KEYS.AUTH_SESSION] || null;
+      if (savedUser && savedSession) {
+        const nowSec = Math.floor(Date.now() / 1000);
+        if (!savedSession.expires_at || savedSession.expires_at >= nowSec) {
+          // Send auth state to this specific tab (with delay to let content script mount)
+          setTimeout(() => {
+            chrome.tabs.sendMessage(tab.id, {
+              type: "AUTH_STATE_CHANGED",
+              user: savedUser,
+              session: savedSession
+            }).catch(() => {});
+          }, 300);
+        }
+      }
+    });
 
     try {
       await chrome.tabs.sendMessage(tab.id, { type: "TOGGLE_OVERLAY", enabled: true });
@@ -339,6 +389,24 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   if (message.type === "GET_REDIRECT_URI") {
     sendResponse({ redirectUri: chrome.identity.getRedirectURL() });
+  }
+
+  if (message.type === "GET_SESSION") {
+    chrome.storage.local.get([CONFIG.STORAGE_KEYS.AUTH_SESSION, CONFIG.STORAGE_KEYS.USER_PROFILE], (result) => {
+      const session = result[CONFIG.STORAGE_KEYS.AUTH_SESSION] || null;
+      const user = result[CONFIG.STORAGE_KEYS.USER_PROFILE] || null;
+      // Validate token expiry
+      if (session && session.expires_at) {
+        const nowSec = Math.floor(Date.now() / 1000);
+        if (session.expires_at < nowSec) {
+          chrome.storage.local.remove([CONFIG.STORAGE_KEYS.AUTH_SESSION, CONFIG.STORAGE_KEYS.USER_PROFILE]);
+          sendResponse({ success: true, user: null, session: null });
+          return;
+        }
+      }
+      sendResponse({ success: true, user, session });
+    });
+    return true;
   }
 });
 

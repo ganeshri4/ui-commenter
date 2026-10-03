@@ -97,16 +97,40 @@ class SidePanelController {
   }
 
   async loadAuthUser() {
+    // Use GET_SESSION for reliable session state (validates expiry)
     return new Promise((resolve) => {
-      chrome.storage.local.get([CONFIG.STORAGE_KEYS.USER_PROFILE], (result) => {
-        this.currentUser = result[CONFIG.STORAGE_KEYS.USER_PROFILE] || null;
+      chrome.runtime.sendMessage({ type: "GET_SESSION" }, (res) => {
+        if (chrome.runtime.lastError) {
+          // Background not responding — fall back to local storage
+          chrome.storage.local.get([CONFIG.STORAGE_KEYS.USER_PROFILE], (result) => {
+            this.currentUser = result[CONFIG.STORAGE_KEYS.USER_PROFILE] || null;
+            this.renderAuthBanner();
+            resolve();
+          });
+          return;
+        }
+        this.currentUser = (res && res.user) || null;
         this.renderAuthBanner();
         resolve();
       });
     });
   }
 
-  renderAuthBanner() {
+  renderAuthBanner(state = "idle") {
+    if (state === "loading") {
+      this.elAuthBanner.innerHTML = `
+        <span style="color: #666666;">Signing in…</span>
+        <span style="font-size: 11px; color: #18A0FB; display: flex; align-items: center; gap: 4px;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="animation: spin 1s linear infinite;">
+            <circle cx="12" cy="12" r="10" stroke="#18A0FB" stroke-width="3" stroke-dasharray="31 10" stroke-linecap="round"/>
+          </svg>
+          Opening Google…
+        </span>
+        <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
+      `;
+      return;
+    }
+
     if (this.currentUser) {
       const name = this.currentUser.user_metadata?.full_name || this.currentUser.email || "User";
       const avatarUrl = this.currentUser.user_metadata?.avatar_url;
@@ -127,12 +151,29 @@ class SidePanelController {
       this.elAuthBanner.innerHTML = `
         <span style="color: #666666;">Guest Reviewer</span>
         <button id="auth-signin-btn" class="btn btn-primary" style="padding: 4px 10px; font-size: 11px; display: flex; align-items: center; gap: 4px;">
-          ${renderIcon("google", 12)} Sign In
+          ${renderIcon("google", 12)} Sign In with Google
         </button>
       `;
 
       document.getElementById("auth-signin-btn")?.addEventListener("click", () => {
-        chrome.runtime.sendMessage({ type: "TRIGGER_GOOGLE_AUTH" });
+        this.renderAuthBanner("loading");
+        chrome.runtime.sendMessage({ type: "TRIGGER_GOOGLE_AUTH" }, (res) => {
+          if (chrome.runtime.lastError || !res) {
+            this.renderAuthBanner(); // reset to guest state
+            return;
+          }
+          if (!res.success) {
+            // Show error briefly then restore sign-in button
+            this.elAuthBanner.innerHTML = `
+              <span style="color: #F24822; font-size: 11px;">⚠ Sign-in failed: ${this.escapeHtml(res.error || "Unknown error")}</span>
+              <button id="auth-retry-btn" class="btn btn-primary" style="padding: 4px 10px; font-size: 11px;">Retry</button>
+            `;
+            document.getElementById("auth-retry-btn")?.addEventListener("click", () => {
+              this.renderAuthBanner(); // let AUTH_STATE_CHANGED handle it, or re-render guest
+            });
+          }
+          // On success, AUTH_STATE_CHANGED broadcast will call renderAuthBanner with the user
+        });
       });
     }
   }
