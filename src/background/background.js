@@ -179,32 +179,55 @@ async function handleGoogleOAuth() {
         }
 
         try {
-          // Parse hash fragment tokens
+          // Parse hash and search fragment tokens
           const parsedUrl = new URL(redirectUrl);
           const hashParams = new URLSearchParams(parsedUrl.hash.replace(/^#/, ""));
-          const accessToken = hashParams.get("access_token");
-          const refreshToken = hashParams.get("refresh_token");
-          const expiresIn = hashParams.get("expires_in");
+          const queryParams = new URLSearchParams(parsedUrl.search);
+
+          // Check if an error was returned in redirect
+          const errorDesc = hashParams.get("error_description") || queryParams.get("error_description") || hashParams.get("error") || queryParams.get("error");
+          if (errorDesc) {
+            return reject(new Error(errorDesc));
+          }
+
+          let accessToken = hashParams.get("access_token") || queryParams.get("access_token");
+          let refreshToken = hashParams.get("refresh_token") || queryParams.get("refresh_token");
+          let expiresIn = hashParams.get("expires_in") || queryParams.get("expires_in");
+          let user = null;
+
+          // If code is returned instead of access_token, exchange code for session
+          if (!accessToken) {
+            const code = queryParams.get("code") || hashParams.get("code");
+            if (code) {
+              const supabase = await getSupabase();
+              const { data: exchangeData, error: exchangeErr } = await supabase.auth.exchangeCodeForSession(code);
+              if (exchangeErr) throw exchangeErr;
+              accessToken = exchangeData.session?.access_token;
+              refreshToken = exchangeData.session?.refresh_token;
+              expiresIn = exchangeData.session?.expires_in;
+              user = exchangeData.user;
+            }
+          }
 
           if (!accessToken) {
-            const queryParams = new URLSearchParams(parsedUrl.search);
-            const err = queryParams.get("error_description") || "No access token found in redirect URL";
-            return reject(new Error(err));
+            return reject(new Error("No access token found in redirect URL"));
           }
 
-          // Fetch user details from Supabase using access token
-          const userResp = await fetch(`${config.SUPABASE_URL}/auth/v1/user`, {
-            headers: {
-              apikey: config.SUPABASE_ANON_KEY,
-              Authorization: `Bearer ${accessToken}`
+          // Fetch user details from Supabase if not already fetched
+          if (!user) {
+            const userResp = await fetch(`${config.SUPABASE_URL}/auth/v1/user`, {
+              headers: {
+                apikey: config.SUPABASE_ANON_KEY,
+                Authorization: `Bearer ${accessToken}`
+              }
+            });
+
+            if (!userResp.ok) {
+              throw new Error(`Failed to fetch user profile: ${userResp.statusText}`);
             }
-          });
 
-          if (!userResp.ok) {
-            throw new Error(`Failed to fetch user profile: ${userResp.statusText}`);
+            user = await userResp.json();
           }
-
-          const user = await userResp.json();
 
           // Construct and store session
           const session = {
